@@ -1,22 +1,15 @@
 #import socket module
+import threading
 from socket import *
 import sys # In order to terminate the program
-serverSocket = socket(AF_INET, SOCK_STREAM) 
-#Prepare a sever socket
-#Write your code here
-host = '127.0.0.1'
-port = 6789
-serverSocket.bind((host, port))
-serverSocket.listen(1)
-#End of your code
-while True:
-#Establish the connection print('Ready to serve...') connectionSocket, addr =
-    print('Ready to serve....')
-    conSocket, addr = serverSocket.accept()
+
+
+
+def handleRequest(conSocket):
     try:
-        message = conSocket.recv(2048).decode()
+        message = conSocket.recv(2048).decode() #
         print(message) 
-        filename = "." + message.split()[1]
+        filename = message.split()[1][1:]
         print(filename)
         
         f = open(filename)
@@ -34,15 +27,27 @@ while True:
         #Send the content of the requested file to the client 
         for i in range(0, len(outputdata), 2048):
             conSocket.send((outputdata[i:1+2048]).encode())
-        conSocket.close()
-    except IOError as e:
+    except IOError:
     #Send response message for file not found
         conSocket.send('HTTP/1.1 404 Not Found\r\n'.encode())
         conSocket.send('Content-Type: text/html\r\n'.encode())
         conSocket.send('\r\n'.encode())
         conSocket.send('<html><body><h1>404 Not Found</h1></body></html>'.encode())
-        print(e)
-        conSocket.close()
     #Close client socket
-serverSocket.close()
-sys.exit()#Terminate the program after sending the corresponding data
+    finally:
+        conSocket.close()
+
+serverSocket = socket(AF_INET, SOCK_STREAM) 
+host = '127.0.0.1' #Establishes a ip for the host
+port = 6789        #Defines what port communication with server happens
+serverSocket.bind(('', port))
+serverSocket.listen(5)
+
+
+while True:
+#Establish the connection print('Ready to serve...') connectionSocket, addr =
+    print('Ready to serve....')
+    conSocket, addr = serverSocket.accept()
+
+    t = threading.Thread(target=handleRequest, args=(conSocket,))
+    t.start()
